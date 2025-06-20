@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>センサーAPIデモ</title>
+  <style>
+    body { font-family: sans-serif; margin: 1em; }
+    h1 { font-size: 1.5em; }
+    .section { margin-top: 1.5em; }
+    table { border-collapse: collapse; width: 100%; max-width: 400px; }
+    th, td { border: 1px solid #ccc; padding: 0.5em; text-align: right; }
+    th { background: #f0f0f0; }
+    button { padding: 0.5em 1em; margin-right: 1em; }
+  </style>
+</head>
+<body>
+  <h1>HTML5 センサーAPI デモ</h1>
+  <p>
+    このページは以下のAPIを使っています。
+    <ul>
+      <li>Geolocation API（位置情報）</li>
+      <li>DeviceMotion API（加速度・回転率）</li>
+      <li>DeviceOrientation API（絶対方位・傾き）</li>
+    </ul>
+    モバイル端末で開き、センサーへのアクセスを許可すると、リアルタイムにデータが表示されます。
+  </p>
+
+  <div class="section">
+    <button id="startBtn">センサー開始</button>
+    <button id="stopBtn" disabled>センサー停止</button>
+  </div>
+
+  <div class="section">
+    <h2>位置情報 (Geolocation)</h2>
+    <table>
+      <tr><th>緯度 (lat)</th><td id="lat">--</td></tr>
+      <tr><th>経度 (lon)</th><td id="lon">--</td></tr>
+      <tr><th>高度 (m)</th><td id="alt">--</td></tr>
+      <tr><th>精度 (m)</th><td id="acc">--</td></tr>
+      <tr><th>タイムスタンプ</th><td id="posTime">--</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>加速度・回転率 (DeviceMotion)</h2>
+    <table>
+      <tr><th>acceleration.x</th><td id="ax">--</td></tr>
+      <tr><th>acceleration.y</th><td id="ay">--</td></tr>
+      <tr><th>acceleration.z</th><td id="az">--</td></tr>
+      <tr><th>rotationRate.alpha</th><td id="ralpha">--</td></tr>
+      <tr><th>rotationRate.beta</th><td id="rbeta">--</td></tr>
+      <tr><th>rotationRate.gamma</th><td id="rgamma">--</td></tr>
+      <tr><th>interval (ms)</th><td id="dmInterval">--</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>デバイスの向き (DeviceOrientation)</h2>
+    <table>
+      <tr><th>absolute</th><td id="abs">--</td></tr>
+      <tr><th>alpha (z軸回転)</th><td id="dorAlpha">--</td></tr>
+      <tr><th>beta (x軸回転)</th><td id="dorBeta">--</td></tr>
+      <tr><th>gamma (y軸回転)</th><td id="dorGamma">--</td></tr>
+    </table>
+  </div>
+
+  <script>
+    let watchId;
+
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn  = document.getElementById('stopBtn');
+
+    startBtn.addEventListener('click', () => {
+      // Geolocation
+      if ('geolocation' in navigator) {
+        watchId = navigator.geolocation.watchPosition(pos => {
+          const c = pos.coords;
+          document.getElementById('lat').textContent     = c.latitude.toFixed(6);
+          document.getElementById('lon').textContent     = c.longitude.toFixed(6);
+          document.getElementById('alt').textContent     = c.altitude !== null ? c.altitude.toFixed(2) : 'N/A';
+          document.getElementById('acc').textContent     = c.accuracy.toFixed(2);
+          document.getElementById('posTime').textContent = new Date(pos.timestamp).toLocaleTimeString();
+        }, err => {
+          alert('位置情報取得エラー: ' + err.message);
+        }, { enableHighAccuracy: true });
+      } else {
+        alert('Geolocation API 非対応');
+      }
+
+      // DeviceMotion
+      if ('DeviceMotionEvent' in window) {
+        window.addEventListener('devicemotion', dmHandler);
+      } else {
+        alert('DeviceMotion API 非対応');
+      }
+
+      // DeviceOrientation
+      if ('DeviceOrientationEvent' in window) {
+        window.addEventListener('deviceorientation', dorHandler);
+      } else {
+        alert('DeviceOrientation API 非対応');
+      }
+
+      startBtn.disabled = true;
+      stopBtn.disabled  = false;
+    });
+
+    stopBtn.addEventListener('click', () => {
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+      window.removeEventListener('devicemotion', dmHandler);
+      window.removeEventListener('deviceorientation', dorHandler);
+
+      startBtn.disabled = false;
+      stopBtn.disabled  = true;
+    });
+
+    function dmHandler(e) {
+      const a = e.acceleration;
+      const r = e.rotationRate;
+      document.getElementById('ax').textContent        = a.x?.toFixed(3) || '0';
+      document.getElementById('ay').textContent        = a.y?.toFixed(3) || '0';
+      document.getElementById('az').textContent        = a.z?.toFixed(3) || '0';
+      document.getElementById('ralpha').textContent   = r.alpha?.toFixed(3) || '0';
+      document.getElementById('rbeta').textContent    = r.beta?.toFixed(3) || '0';
+      document.getElementById('rgamma').textContent   = r.gamma?.toFixed(3) || '0';
+      document.getElementById('dmInterval').textContent = e.interval.toFixed(1);
+    }
+
+    function dorHandler(e) {
+      document.getElementById('abs').textContent     = e.absolute;
+      document.getElementById('dorAlpha').textContent = e.alpha?.toFixed(1);
+      document.getElementById('dorBeta').textContent  = e.beta?.toFixed(1);
+      document.getElementById('dorGamma').textContent = e.gamma?.toFixed(1);
+    }
+  </script>
+</body>
+</html>
